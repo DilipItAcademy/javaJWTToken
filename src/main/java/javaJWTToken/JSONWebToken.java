@@ -14,15 +14,14 @@ public class JSONWebToken {
 
 	public static void main(String ar[]) {
 
-		// Creating/Producing Tokens
+		// Creating/Producing Tokens, checking
 		String token = Jwts.builder().setId("dilipsingh1306@gmail.com").setSubject("To Access Address")
 				.setIssuer("ZOMATO COMPANY").setIssuedAt(new Date(System.currentTimeMillis())) // Date +Time creation of
-																								// token
+																			// token
 				.setExpiration(new Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1)))
 				.signWith(SignatureAlgorithm.HS256, key.getBytes()).compact();
 
 		System.out.println(token);
-
 		claimToken(token);
 
 	}
