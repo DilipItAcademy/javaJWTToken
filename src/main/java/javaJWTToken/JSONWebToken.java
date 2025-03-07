@@ -1,58 +1,79 @@
 package javaJWTToken;
 
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
-import io.jsonwebtoken.Claims;
+import javax.crypto.SecretKey;
+
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 
 //JWT TOKEn Generation
 public class JSONWebToken {
 
-	static String key = "ZOMATO";
+		// Secret key
+	private final String SECRET_KEY = "ThisIsSecretKeyUsedForEncryptionDecryptionOfData";
+	private final long TOKEN_EXPIRY_DURATION = 5 * 60000; // 5 mins // 1sec = 1000 ms -> 1 min = 60000 ms
 
-	public static void main(String ar[]) {
+	public static void main(String[] args) {
 
-		// Creating/Producing Tokens, checking
-		String token = Jwts.builder().setId("dilipsingh1306@gmail.com").setSubject("To Access Address")
-				.setIssuer("ZOMATO COMPANY").setIssuedAt(new Date(System.currentTimeMillis())) // Date +Time creation of
-																			// token
-				.setExpiration(new Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1)))
-				.signWith(SignatureAlgorithm.HS256, key.getBytes()).compact();
+		JWTUtil jwt = new JWTUtil();
+		String token = jwt.createToken("dilipitacademy");
+		System.out.println("Token Created For User : dilipitacademy : " + token);
 
-		System.out.println(token);
-		claimToken(token);
+		// Validation Of Token
 
-	}
+		System.out.println("Getting User Name From Token ");
+		String userName = jwt.getUserIdFromToken(token);
+		System.out.println("User Name Retrived From Token : " + userName);
 
-	public static void claimToken(String token) {
-
-		// Claims : claiming the token : Simply reading details from generated token by
-		// passing secret
-		Claims claim = (Claims) Jwts.parser().setSigningKey(key.getBytes()).parse(token).getBody();
-
-		String userId = claim.getId();
-		Date createdDateTime = claim.getIssuedAt();
-		Date expDateTime = claim.getExpiration();
-		String issuer = claim.getIssuer();
-		String subject = claim.getSubject();
-
-		System.out.println(userId);
-		System.out.println(createdDateTime);
-		System.out.println(expDateTime);
-		System.out.println(issuer);
-		System.out.println(subject);
-
-		boolean isExpired = isTokenExpired(expDateTime);
-		System.out.println("IS It Expired? " + isExpired);
+		System.out.println("Validation Of Token  : ");
+		boolean isValid = jwt.isValidToken(token, "dilipitacademy");
+		System.out.println("Is Token Valid ? " + isValid);
 
 	}
 
-	public static boolean isTokenExpired(Date expTime) {
-
-		return expTime.before(new Date(System.currentTimeMillis()));
-
+	private SecretKey getSecretKey() {
+		byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+		return Keys.hmacShaKeyFor(keyBytes);
 	}
 
+	public String createToken(String emailId) {
+
+		String token = Jwts.builder()
+				.subject(emailId) // unique user id
+				.issuedAt(new Date(System.currentTimeMillis())) // setting creation time
+				.expiration(new Date(System.currentTimeMillis() + TOKEN_EXPIRY_DURATION)) // setting Expire time
+				.signWith(getSecretKey())
+				.compact();
+
+		return token;
+	}
+
+	public boolean isValidToken(String token, String userId) {
+		String userIDFromToken = getUserIdFromToken(token);
+		return userIDFromToken.equalsIgnoreCase(userId) && isTokenExpired(token);
+	}
+
+	// user Id from the token
+	public String getUserIdFromToken(String token) {
+		return Jwts.parser()
+				.verifyWith(getSecretKey())
+				.build()
+				.parseSignedClaims(token)
+				.getPayload()
+				.getSubject();
+	}
+
+	// check if the token has expired
+	private boolean isTokenExpired(String token) {
+		Date expirtyTime = Jwts.parser()
+				.verifyWith(getSecretKey())
+				.build()
+				.parseSignedClaims(token)
+				.getPayload()
+				.getExpiration();
+		System.out.println("Token Epirty Time : " + expirtyTime);
+		return expirtyTime.after(new Date());
+	}
 }
